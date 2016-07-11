@@ -1,6 +1,9 @@
 package tjsonapi
 
-import "errors"
+import (
+	"encoding/json"
+	"errors"
+)
 
 var (
 	// ErrResourcesBadType is an error object returned when the user tries to
@@ -103,4 +106,15 @@ func (r *Resources) GetResources() ([]*Resource, error) {
 		return r.Data, nil
 	}
 	return nil, ErrResourcesBadType
+}
+
+// MarshalJSON marshals a Resources object to JSON. This method is needed
+// because a Resources object is in fact a multi-type object.<br />
+// If there is many resources in the object, the entire slice is marshaled,
+// but if there is only one, only the first element is marshaled.
+func (r *Resources) MarshalJSON() ([]byte, error) {
+	if r.Type == ResourcesOne {
+		return json.Marshal(r.Data[0])
+	}
+	return json.Marshal(r.Data)
 }
