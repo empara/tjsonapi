@@ -40,16 +40,21 @@ func (c *Context) Marshal(i interface{}) (*Root, error) {
 	case reflect.Struct:
 		root.Data = NewResourcesOne()
 		e.Resource = NewResource()
-		e.marshalStruct(v)
+		err := e.marshalStruct(v)
+		if err != nil {
+			return nil, err
+		}
 		root.Data.SetResource(e.Resource)
 	case reflect.Array, reflect.Slice:
 		root.Data = NewResourcesMany()
 		for it := 0; it < v.Len(); it++ {
 			e.Resource = NewResource()
-			e.marshalStruct(v.Index(it))
+			err := e.marshalStruct(v.Index(it))
+			if err != nil {
+				return nil, err
+			}
 			root.Data.AddResource(e.Resource)
 		}
-		root.Data.AddResource(e.Resource)
 	default:
 		return nil, ErrEncodingInvalidType
 	}
@@ -140,9 +145,6 @@ func (e *encoder) encodeRelationship(v reflect.Value, tags []string) error {
 		case TagRelationshipData:
 			if len(tags) < 4 {
 				return ErrEncodingInvalidTag
-			}
-			if v.Kind() != reflect.String {
-				return ErrEncodingInvalidType
 			}
 			var err error
 			r := NewRelationship()
