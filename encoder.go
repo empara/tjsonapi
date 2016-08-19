@@ -148,14 +148,29 @@ func (e *encoder) encodeRelationship(v reflect.Value, tags []string) error {
 			}
 			var err error
 			r := NewRelationship()
-			resource := NewResourceIdentifier()
-			resource.ID, err = valueToString(v)
-			resource.Type = tags[3]
-			if err != nil {
-				return ErrEncodingInvalidType
+
+			if v.Kind() == reflect.Array || v.Kind() == reflect.Slice {
+				r.Data = NewResourceLinkageToMany()
+				for it := 0; it < v.Len(); it++ {
+					resource := NewResourceIdentifier()
+					resource.ID, err = valueToString(v.Index(it))
+					resource.Type = tags[3]
+					if err != nil {
+						return ErrEncodingInvalidType
+					}
+					r.Data.AddResourceIdentifier(resource)
+				}
+				e.Resource.Relationships[tags[1]] = r
+			} else {
+				r.Data = NewResourceLinkageToOne()
+				resource := NewResourceIdentifier()
+				resource.ID, err = valueToString(v)
+				resource.Type = tags[3]
+				if err != nil {
+					return ErrEncodingInvalidType
+				}
+				r.Data.SetResourceIdentifier(resource)
 			}
-			r.Data = NewResourceLinkageToOne()
-			r.Data.SetResourceIdentifier(resource)
 			e.Resource.Relationships[tags[1]] = r
 		}
 	}
