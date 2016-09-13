@@ -68,6 +68,9 @@ type encoder struct {
 }
 
 func (e *encoder) marshalStruct(v reflect.Value) error {
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
 	t := v.Type()
 	for it := 0; it < t.NumField(); it++ {
 		f := t.Field(it)
