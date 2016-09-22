@@ -118,3 +118,24 @@ func (r *Resources) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(r.Data)
 }
+
+// UnmarshalJSON unmarshals JSON data to a Resources object.
+// Can fail if the JSON data does not represent an object or an array.
+func (r *Resources) UnmarshalJSON(data []byte) error {
+	// Try to unmarshal to a single object first
+	var resource Resource
+	if err := json.Unmarshal(data, &resource); err == nil {
+		r.Type = ResourcesOne
+		r.Data = []*Resource{&resource}
+		return nil
+	}
+
+	// Try to unmarshal multiple objects this time
+	if err := json.Unmarshal(data, &r.Data); err == nil {
+		r.Type = ResourcesMany
+		return nil
+	}
+
+	// Neither an object nor an array, this won't work
+	return ErrResourcesBadType
+}

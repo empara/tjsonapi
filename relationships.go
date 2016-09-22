@@ -124,6 +124,24 @@ func (l *ResourceLinkage) MarshalJSON() ([]byte, error) {
 	return json.Marshal(l.Data)
 }
 
+// UnmarshalJSON unmarshals JSON data to a ResourceLinkage object.
+// Can fail if the JSON data does not represent an object or an array.
+func (l *ResourceLinkage) UnmarshalJSON(data []byte) error {
+	var linkage ResourceIdentifier
+	if err := json.Unmarshal(data, &linkage); err == nil {
+		l.Type = ResourceLinkageToOne
+		l.Data = []*ResourceIdentifier{&linkage}
+		return nil
+	}
+
+	if err := json.Unmarshal(data, &l.Data); err == nil {
+		l.Type = ResourceLinkageToMany
+		return nil
+	}
+
+	return ErrResourceLinkageBadType
+}
+
 // Relationship is a struct that represents a relationship object from the
 // <a href="http://jsonapi.org/format/#document-resource-object-relationships">
 // JSON API</a>.
