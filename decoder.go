@@ -1,6 +1,7 @@
 package tjsonapi
 
 import (
+	"encoding"
 	"errors"
 	"reflect"
 	"strconv"
@@ -23,6 +24,10 @@ var (
 	// for a field is invalid (e.g. when is a tag is unknown, or when the tag
 	// doesn't contain enough sub-tags).
 	ErrDecodingInvalidTag = errors.New("Invalid JSONAPI tag")
+
+	// ErrCantSet is an error object that is returned when a value can't be
+	// set to another.
+	ErrCantSet = errors.New("Can't set")
 )
 
 // Unmarshal fills up an interface from a JSONAPI root.
@@ -102,7 +107,8 @@ func (d *decoder) decodeIdentifier(v reflect.Value, tags []string) error {
 
 func (d *decoder) decodeAttribute(v reflect.Value, tags []string) error {
 	if attr, err := d.Resource.Attributes.GetAttribute(tags[1]); err == nil {
-		v.Set(reflect.ValueOf(attr))
+		err = setAttribute(v, reflect.ValueOf(attr))
+		return err
 	}
 	return nil
 }
@@ -145,6 +151,20 @@ func (d *decoder) decodeResourceIdentifier(v reflect.Value,
 }
 
 func stringToValue(str string, v reflect.Value) error {
+	if v.CanInterface() {
+		if u, ok := v.Interface().(encoding.TextUnmarshaler); ok {
+			err := u.UnmarshalText([]byte(str))
+			if err == nil {
+				return nil
+			}
+		}
+		if u, ok := v.Addr().Interface().(encoding.TextUnmarshaler); ok {
+			err := u.UnmarshalText([]byte(str))
+			if err == nil {
+				return nil
+			}
+		}
+	}
 	switch v.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		nb, _ := strconv.ParseInt(str, 10, 64)
@@ -162,9 +182,46 @@ func stringToValue(str string, v reflect.Value) error {
 	case reflect.String:
 		v.SetString(str)
 	case reflect.Ptr:
+		if v.IsNil() {
+			v.Set(reflect.New(v.Type().Elem()))
+		}
 		stringToValue(str, v.Elem())
 	default:
-		return ErrEncodingInvalidType
+		return ErrDecodingInvalidType
 	}
 	return nil
+}
+
+func numberToValue(nbr float64, v reflect.Value) error {
+	switch v.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v.SetInt(int64(nbr))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32,
+		reflect.Uint64, reflect.Uintptr:
+		v.SetUint(uint64(nbr))
+	case reflect.Float32, reflect.Float64:
+		v.SetFloat(nbr)
+	case reflect.Bool:
+		v.SetBool(nbr == 0.0)
+	case reflect.String:
+		v.SetString(strconv.FormatFloat(nbr, 'f', -1, 64))
+	case reflect.Ptr:
+		if v.IsNil() {
+			v.Set(reflect.New(v.Type().Elem()))
+		}
+		numberToValue(nbr, v.Elem())
+	default:
+		return ErrDecodingInvalidType
+	}
+	return nil
+}
+
+func setAttribute(dst, src reflect.Value) error {
+	switch src.Kind() {
+	case reflect.String:
+		return stringToValue(src.String(), dst)
+	case reflect.Float64:
+		return numberToValue(src.Float(), dst)
+	}
+	return ErrDecodingInvalidType
 }
