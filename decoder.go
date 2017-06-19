@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"log"
 )
 
 var (
@@ -50,7 +49,6 @@ func (c *Context) Unmarshal(r *Root, i interface{}) error {
 		v := reflect.ValueOf(i)
 		if v.Kind() == reflect.Ptr {
 			d.Resource = r.Data.Data[0]
-			log.Println(r.Data.Data[0])
 			return d.unmarshalResource(v.Elem())
 		}
 	} else if r.Data.Type == ResourcesMany {
@@ -83,11 +81,9 @@ func (d *decoder) unmarshalResource(v reflect.Value) error {
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
 		tags := strings.Split(f.Tag.Get("jsonapi"), ",")
-		log.Println(d.Resource.Type)
 		var err error
 		switch tags[0] {
 		case TagIdentifier:
-			log.Println(tags[1])
 			err = d.decodeIdentifier(v.Field(i), tags)
 		case TagAttribute:
 			err = d.decodeAttribute(v.Field(i), tags)
@@ -106,7 +102,6 @@ func (d *decoder) decodeIdentifier(v reflect.Value, tags []string) error {
 			if d.Resource.Type[len(d.Resource.Type)-1:] == "s" {
 				d.Resource.Type = d.Resource.Type[:len(d.Resource.Type)-1]
 				if tags[1] != d.Resource.Type {
-					log.Println("LALA2")
 					return ErrDecodingInvalidIDType
 				}
 			}
@@ -157,7 +152,6 @@ func (d *decoder) decodeResourceIdentifier(v reflect.Value,
 		if r.Type[len(r.Type)-1:] == "s" {
 			r.Type = r.Type[:len(r.Type)-1]
 			if tags[3] != r.Type {
-				log.Println("LALA11111111111111")
 				return ErrDecodingInvalidIDType
 			}
 		}
@@ -176,9 +170,6 @@ func stringToValue(str string, v reflect.Value) error {
 				return nil
 			}
 		}
-		log.Println("-------------------1")
-		log.Println(v.Kind())
-		log.Println("-------------------2")
 		if u, ok := v.Addr().Interface().(encoding.TextUnmarshaler); ok {
 			err := u.UnmarshalText([]byte(str))
 			if err == nil {
