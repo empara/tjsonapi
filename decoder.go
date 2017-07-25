@@ -238,6 +238,27 @@ func booleanToValue(val bool, v reflect.Value) error {
 	return nil
 }
 
+func invalidToValue(v reflect.Value) error {
+	switch v.Kind() {
+		case reflect.Bool:
+			v.SetBool(false)
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			v.SetInt(0)
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32,
+			reflect.Uint64, reflect.Uintptr:
+			v.SetUint(0)
+		case reflect.Float32, reflect.Float64:
+			v.SetFloat(0.0)
+		case reflect.Ptr:
+			v.SetPointer(nil)
+		case reflect.String:
+			return stringToValue("", v)
+		default:
+			return ErrDecodingInvalidType
+	}
+	return nil
+}
+
 func setAttribute(dst, src reflect.Value) error {
 	switch src.Kind() {
 	case reflect.String:
@@ -246,6 +267,8 @@ func setAttribute(dst, src reflect.Value) error {
 		return numberToValue(src.Float(), dst)
 	case reflect.Bool:
 		return booleanToValue(src.Bool(), dst)
+	case reflect.Invalid:
+		return invalidToValue(dst)
 	}
 	return ErrDecodingInvalidType
 }
