@@ -163,7 +163,7 @@ func (d *decoder) decodeResourceIdentifier(v reflect.Value,
 }
 
 func stringToValue(str string, v reflect.Value) error {
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Ptr && v.IsNil() == false {
 		v = v.Elem()
 	}
 	if v.CanInterface() {
