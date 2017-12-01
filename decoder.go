@@ -125,6 +125,9 @@ func (d *decoder) decodeRelationship(v reflect.Value, tags []string) error {
 			return ErrDecodingInvalidTag
 		}
 		if r, hasKey := d.Resource.Relationships[tags[1]]; hasKey {
+			if r.Data == nil {
+				return nil
+			}
 			if r.Data.Type == ResourceLinkageToOne {
 				return d.decodeResourceIdentifier(v, r.Data.Data[0], tags)
 			} else if r.Data.Type == ResourceLinkageToMany {
